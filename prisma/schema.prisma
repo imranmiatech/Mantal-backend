@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  RESEARCHER
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum SubmissionStatus {
+  PENDING
+  PUBLISHED
+  REJECTED
+}
+
+model User {
+  id             String           @id @default(cuid())
+  fullName       String
+  email          String           @unique
+  passwordHash   String
+  role           Role             @default(RESEARCHER)
+  approvalStatus ApprovalStatus   @default(PENDING)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  submissions    DistrictSubmission[] @relation("ResearcherSubmissions")
+  reviewedUsers  UserApprovalAudit[]  @relation("ReviewedUsers")
+  reviewedItems  UserApprovalAudit[]  @relation("ApproverUsers")
+  publishedItems DistrictSubmission[] @relation("PublishedBy")
+}
+
+model UserApprovalAudit {
+  id          String         @id @default(cuid())
+  userId      String
+  reviewerId  String
+  status      ApprovalStatus
+  note        String?
+  createdAt   DateTime       @default(now())
+  reviewer    User           @relation("ApproverUsers", fields: [reviewerId], references: [id])
+  user        User           @relation("ReviewedUsers", fields: [userId], references: [id])
+}
+
+model District {
+  id          String              @id @default(cuid())
+  name        String
+  slug        String              @unique
+  division    String
+  summaryNote String
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  submissions DistrictSubmission[]
+}
+
+model DistrictSubmission {
+  id                  String           @id @default(cuid())
+  districtId          String
+  researcherId        String
+  upazilaCode         Int?
+  upazilaName         String?
+  climateExposure     Decimal          @db.Decimal(4, 2)
+  ageingIndex         Decimal          @db.Decimal(4, 2)
+  psychologicalStress Decimal          @db.Decimal(4, 2)
+  adaptabilityCapacity Decimal         @db.Decimal(4, 2)
+  narrative           String
+  status              SubmissionStatus @default(PENDING)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  publishedAt         DateTime?
+  publishedById       String?
+  district            District         @relation(fields: [districtId], references: [id])
+  researcher          User             @relation("ResearcherSubmissions", fields: [researcherId], references: [id])
+  publishedBy         User?            @relation("PublishedBy", fields: [publishedById], references: [id])
+
+  @@index([districtId, status, createdAt])
+}
