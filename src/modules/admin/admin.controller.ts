@@ -23,7 +23,7 @@ import type { JwtUser } from '../../common/types/jwt-user.type';
 @ApiBearerAuth()
 @Controller('api/admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN)
+@Roles(Role.ADMIN, Role.RESEARCHER)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
@@ -84,6 +84,7 @@ export class AdminController {
 
   @Patch('users/:id/approve')
   @ApiOperation({ summary: 'Approve a researcher account' })
+  @Roles(Role.ADMIN)
   approveResearcher(
     @Param('id') id: string,
     @CurrentUser() user: JwtUser,

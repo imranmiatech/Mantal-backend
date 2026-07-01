@@ -1,5 +1,6 @@
 import {
   IsNumber,
+  IsOptional,
   IsString,
   Max,
   MaxLength,
@@ -10,6 +11,14 @@ import {
 export class CreateSubmissionDto {
   @IsString()
   districtSlug: string;
+
+  @IsOptional()
+  @IsNumber()
+  upazilaCode?: number;
+
+  @IsOptional()
+  @IsString()
+  upazilaName?: string;
 
   @IsNumber()
   @Min(0)

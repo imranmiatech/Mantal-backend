@@ -6,6 +6,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
   async onModuleInit() {
     await this.$connect();
     console.log('Prisma connected to the database');
+    console.log('Port' ,process.env.PORT)
   }
 
   async withReconnect<T>(operation: () => Promise<T>) {

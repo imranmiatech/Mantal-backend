@@ -56,15 +56,15 @@ export class AppBootstrapService implements OnModuleInit {
       })),
     );
 
-    await Promise.all(
-      districts.map((district) =>
+    for (const district of districts) {
+      await this.prisma.withReconnect(() =>
         this.prisma.district.upsert({
           where: { slug: district.slug },
           update: district,
           create: district,
         }),
-      ),
-    );
+      );
+    }
   }
 
   private async ensureDummyPublishedData() {

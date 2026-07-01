@@ -1,13 +1,21 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { CurrentUser } from './common/decorators/current-user.decorator';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import type { JwtUser } from './common/types/jwt-user.type';
+import { PublicService } from './modules/public/public.service';
 
 @Controller()
 export class AppController {
+  constructor(private readonly publicService: PublicService) {}
+
   @Get()
   getApiInfo() {
     return {
       name: 'CAMH Risk Index Backend',
       status: 'ok',
       landingPageDataEndpoint: '/api/public/dashboard',
+      authenticatedDashboardEndpoint: '/api/dashboard',
       routes: {
         auth: {
           signup: 'POST /api/auth/signup',
@@ -27,6 +35,7 @@ export class AppController {
           districtBySlug: 'GET /api/public/districts/:slug',
         },
         researcher: {
+          dashboard: 'GET /api/researcher/dashboard',
           createSubmission: 'POST /api/researcher/submissions',
           mySubmissions: 'GET /api/researcher/submissions/mine',
         },
@@ -48,5 +57,18 @@ export class AppController {
         },
       },
     };
+  }
+
+  @Get('api/dashboard')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get the shared authenticated dashboard for admins and researchers',
+  })
+  getSharedDashboard(
+    @CurrentUser() _user: JwtUser,
+    @Query('division') division?: string,
+  ) {
+    return this.publicService.getDashboard(division);
   }
 }

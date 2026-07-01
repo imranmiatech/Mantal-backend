@@ -29,6 +29,7 @@ NestJS + Prisma + PostgreSQL backend for the Climate-Ageing-Mental Health Risk I
 
 ### Public
 
+- `GET /api/dashboard`
 - `GET /api/public/dashboard`
 - `GET /api/public/dashboard?division=Khulna%20Division`
 - `GET /api/public/districts`
@@ -36,6 +37,7 @@ NestJS + Prisma + PostgreSQL backend for the Climate-Ageing-Mental Health Risk I
 
 ### Researcher
 
+- `GET /api/researcher/dashboard`
 - `POST /api/researcher/submissions`
 - `GET /api/researcher/submissions/mine`
 
@@ -47,6 +49,18 @@ NestJS + Prisma + PostgreSQL backend for the Climate-Ageing-Mental Health Risk I
 - `GET /api/admin/submissions/pending`
 - `PATCH /api/admin/submissions/:id/publish`
 - `PATCH /api/admin/submissions/:id/reject`
+
+Admins and approved researchers can use the same authenticated dashboard route:
+
+```bash
+GET /api/dashboard
+```
+
+Approved researchers can use all admin routes except:
+
+```bash
+PATCH /api/admin/users/:id/approve
+```
 
 ## Prisma models
 

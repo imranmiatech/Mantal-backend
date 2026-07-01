@@ -17,6 +17,12 @@ import type { JwtUser } from '../../common/types/jwt-user.type';
 export class ResearcherController {
   constructor(private readonly researcherService: ResearcherService) {}
 
+  @Get('dashboard')
+  @ApiOperation({ summary: 'Get researcher dashboard overview' })
+  getDashboard(@CurrentUser() user: JwtUser) {
+    return this.researcherService.getDashboard(user.sub);
+  }
+
   @Post('submissions')
   @ApiOperation({ summary: 'Create a researcher submission' })
   createSubmission(
