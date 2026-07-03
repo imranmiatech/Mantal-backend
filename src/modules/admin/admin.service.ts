@@ -3,7 +3,7 @@ import { ApprovalStatus, Role, SubmissionStatus } from '@prisma/client';
 import {
   bangladeshDivisions,
   getDistrictByCode,
-  getDistrictBySlug,
+  getDistrictByIdentifier,
   getDistrictsByDivisionCode,
   getLocationHierarchy,
   getUpazilaByCode,
@@ -109,7 +109,7 @@ export class AdminService {
       throw new NotFoundException('District not found.');
     }
 
-    const districtMeta = getDistrictBySlug(dto.districtSlug);
+    const districtMeta = getDistrictByIdentifier(dto.districtSlug);
     let upazilaCode: number | null = null;
     let upazilaName: string | null = null;
 

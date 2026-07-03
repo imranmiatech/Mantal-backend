@@ -2,7 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, SubmissionStatus } from '@prisma/client';
 import {
   bangladeshDivisions,
-  getDistrictBySlug,
+  getDivisionByIdentifier,
+  getDistrictByIdentifier,
   getDistrictsByDivisionCode,
   getLocationHierarchy,
   getUpazilasByDistrictCode,
@@ -36,21 +37,27 @@ export class PublicService {
     );
   }
 
-  getUpazilaDirectory(districtSlug: string) {
-    const district = getDistrictBySlug(districtSlug);
+  getUpazilaDirectory(districtIdentifier: string) {
+    const district = getDistrictByIdentifier(districtIdentifier);
 
     if (!district) {
-      throw new NotFoundException('District hierarchy data not found.');
+      throw new NotFoundException(
+        `District hierarchy data not found for "${districtIdentifier}".`,
+      );
     }
 
     return getUpazilasByDistrictCode(district.code);
   }
 
-  async getLandingPageData(division?: string, districtSlug?: string) {
-    const records = await this.fetchPublishedRecords(division);
+  async getLandingPageData(
+    division?: string,
+    district?: string,
+    upazila?: string,
+  ) {
+    const records = await this.fetchPublishedRecords(division, district, upazila);
     const districts = records.map((record) => this.mapPublishedRecord(record));
     const selectedDistrict =
-      districts.find((district) => district.slug === districtSlug) ?? districts[0];
+      districts.find((item) => item.slug === district) ?? districts[0];
 
     return {
       header: {
@@ -68,6 +75,8 @@ export class PublicService {
         divisions: [...new Set(districts.map((district) => district.division))],
         activeDivision: division ?? null,
         activeDistrictSlug: selectedDistrict?.slug ?? null,
+        activeDistrict: district ?? null,
+        activeUpazila: upazila ?? null,
       },
       stats: {
         totalDistricts: districts.length,
@@ -92,14 +101,19 @@ export class PublicService {
     };
   }
 
-  async getDashboard(division?: string) {
-    const records = await this.fetchPublishedRecords(division);
+  async getDashboard(division?: string, district?: string, upazila?: string) {
+    const records = await this.fetchPublishedRecords(division, district, upazila);
     const districts = records.map((record) => this.mapPublishedRecord(record));
     const divisions = [...new Set(districts.map((district) => district.division))];
 
     return {
       generatedAt: new Date().toISOString(),
       divisions,
+      filters: {
+        activeDivision: division ?? null,
+        activeDistrict: district ?? null,
+        activeUpazila: upazila ?? null,
+      },
       districts,
       summary: {
         totalDistricts: districts.length,
@@ -110,8 +124,8 @@ export class PublicService {
     };
   }
 
-  async listDistricts(division?: string) {
-    const records = await this.fetchPublishedRecords(division);
+  async listDistricts(division?: string, district?: string, upazila?: string) {
+    const records = await this.fetchPublishedRecords(division, district, upazila);
     return records.map((record) => this.mapPublishedRecord(record));
   }
 
@@ -144,46 +158,102 @@ export class PublicService {
     return this.mapPublishedRecord(record);
   }
 
-  private async fetchPublishedRecords(division?: string) {
-    const filter = division
-      ? ({ division } satisfies Prisma.DistrictWhereInput)
-      : undefined;
+  private async fetchPublishedRecords(
+    division?: string,
+    district?: string,
+    upazila?: string,
+  ) {
+    const districtWhere = this.buildDistrictWhere(division, district);
+    const submissionWhere = this.buildSubmissionWhere(upazila);
 
-    const districts = await this.prisma.withReconnect(() =>
-      this.prisma.district.findMany({
-        where: filter,
+    const submissions = await this.prisma.withReconnect(() =>
+      this.prisma.districtSubmission.findMany({
+        where: {
+          status: SubmissionStatus.PUBLISHED,
+          district: districtWhere,
+          ...submissionWhere,
+        },
         include: {
-          submissions: {
-            where: { status: SubmissionStatus.PUBLISHED },
-            orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
-            take: 1,
-            include: {
-              researcher: {
-                select: {
-                  fullName: true,
-                  email: true,
-                },
-              },
+          district: true,
+          researcher: {
+            select: {
+              fullName: true,
+              email: true,
             },
           },
         },
-        orderBy: { name: 'asc' },
+        orderBy: [
+          { districtId: 'asc' },
+          { upazilaName: 'asc' },
+          { publishedAt: 'desc' },
+          { createdAt: 'desc' },
+        ],
       }),
     );
 
-    return districts
-      .map((district) => {
-        const latest = district.submissions[0];
-        if (!latest) {
-          return null;
-        }
+    const latestByScope = new Map<string, (typeof submissions)[number]>();
 
-        return {
-          ...latest,
-          district,
-        };
-      })
-      .filter((item): item is NonNullable<typeof item> => Boolean(item));
+    for (const submission of submissions) {
+      const scopeKey = upazila
+        ? `${submission.districtId}:${submission.upazilaCode ?? submission.upazilaName ?? 'district'}`
+        : submission.districtId;
+
+      if (!latestByScope.has(scopeKey)) {
+        latestByScope.set(scopeKey, submission);
+      }
+    }
+
+    return Array.from(latestByScope.values());
+  }
+
+  private buildDistrictWhere(
+    division?: string,
+    district?: string,
+  ): Prisma.DistrictWhereInput | undefined {
+    const where: Prisma.DistrictWhereInput = {};
+
+    if (division) {
+      const matchedDivision = getDivisionByIdentifier(division);
+      where.division = matchedDivision
+        ? `${matchedDivision.name} Division`
+        : division;
+    }
+
+    if (district) {
+      const matchedDistrict = getDistrictByIdentifier(district);
+
+      if (matchedDistrict) {
+        where.slug = matchedDistrict.slug;
+      } else {
+        where.OR = [
+          { slug: district.trim().toLowerCase() },
+          { name: { equals: district.trim(), mode: 'insensitive' } },
+        ];
+      }
+    }
+
+    return Object.keys(where).length > 0 ? where : undefined;
+  }
+
+  private buildSubmissionWhere(
+    upazila?: string,
+  ): Pick<Prisma.DistrictSubmissionWhereInput, 'upazilaCode' | 'upazilaName'> {
+    if (!upazila) {
+      return {};
+    }
+
+    const numericCode = Number(upazila.trim());
+
+    if (!Number.isNaN(numericCode)) {
+      return { upazilaCode: numericCode };
+    }
+
+    return {
+      upazilaName: {
+        equals: upazila.trim(),
+        mode: 'insensitive',
+      },
+    };
   }
 
   private mapPublishedRecord(

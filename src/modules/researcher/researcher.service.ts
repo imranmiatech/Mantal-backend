@@ -6,7 +6,7 @@ import {
   getRiskLevel,
 } from '../../common/utils/risk.util';
 import {
-  getDistrictBySlug,
+  getDistrictByIdentifier,
   getUpazilaByCode,
   getUpazilaByName,
 } from '../../common/data/bangladesh-locations';
@@ -95,7 +95,7 @@ export class ResearcherService {
       throw new NotFoundException('District not found.');
     }
 
-    const districtMeta = getDistrictBySlug(dto.districtSlug);
+    const districtMeta = getDistrictByIdentifier(dto.districtSlug);
     let upazilaCode: number | null = null;
     let upazilaName: string | null = null;
 
@@ -135,7 +135,9 @@ export class ResearcherService {
         upazilaName,
         ...data,
         narrative: dto.narrative,
-        status: SubmissionStatus.PENDING,
+        status: SubmissionStatus.PUBLISHED,
+        publishedAt: new Date(),
+        publishedById: userId,
       },
       include: {
         district: true,
@@ -155,7 +157,8 @@ export class ResearcherService {
       riskIndex,
       riskLevel: getRiskLevel(riskIndex),
       createdAt: submission.createdAt,
-      message: 'Submission saved. Admin needs to publish it before public view.',
+      publishedAt: submission.publishedAt,
+      message: 'Submission published successfully and is now visible publicly.',
     };
   }
 

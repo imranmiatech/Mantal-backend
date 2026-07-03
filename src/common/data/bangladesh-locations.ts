@@ -27,6 +27,33 @@ export const bangladeshDivisions = divisions_en.map((division) => ({
 export const getDivisionByCode = (divisionCode: number) =>
   bangladeshDivisions.find((division) => division.code === divisionCode) ?? null;
 
+export const getDivisionByIdentifier = (divisionIdentifier: string | number) => {
+  const normalizedIdentifier = String(divisionIdentifier).trim();
+  const numericCode = Number(normalizedIdentifier);
+
+  if (!Number.isNaN(numericCode)) {
+    const divisionByCode = getDivisionByCode(numericCode);
+
+    if (divisionByCode) {
+      return divisionByCode;
+    }
+  }
+
+  return (
+    bangladeshDivisions.find((division) => {
+      const normalizedName = normalizeName(division.name);
+      const normalizedSlug = normalizeName(division.slug);
+      const candidate = normalizeName(normalizedIdentifier);
+
+      return (
+        normalizedName === candidate ||
+        normalizedSlug === candidate ||
+        `${normalizedName} division` === candidate
+      );
+    }) ?? null
+  );
+};
+
 export const getDistrictsByDivisionCode = (divisionCode: number) => {
   const districts = (districts_en as Record<number, LocationNode[]>)[divisionCode] ?? [];
 
@@ -60,6 +87,37 @@ export const getDistrictBySlug = (districtSlug: string) => {
 
     if (district) {
       return district;
+    }
+  }
+
+  return null;
+};
+
+export const getDistrictByIdentifier = (districtIdentifier: string | number) => {
+  const normalizedIdentifier = String(districtIdentifier).trim();
+  const numericCode = Number(normalizedIdentifier);
+
+  if (!Number.isNaN(numericCode)) {
+    const districtByCode = getDistrictByCode(numericCode);
+
+    if (districtByCode) {
+      return districtByCode;
+    }
+  }
+
+  const districtBySlug = getDistrictBySlug(slugify(normalizedIdentifier));
+
+  if (districtBySlug) {
+    return districtBySlug;
+  }
+
+  for (const division of bangladeshDivisions) {
+    const districtByName = getDistrictsByDivisionCode(division.code).find(
+      (item) => normalizeName(item.name) === normalizeName(normalizedIdentifier),
+    );
+
+    if (districtByName) {
+      return districtByName;
     }
   }
 

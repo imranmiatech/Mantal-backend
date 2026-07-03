@@ -5,7 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ApprovalStatus, Role } from '@prisma/client';
+import { Role } from '@prisma/client';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { JwtUser } from '../types/jwt-user.type';
 
@@ -28,15 +28,6 @@ export class RolesGuard implements CanActivate {
 
     if (!user) {
       throw new ForbiddenException('Authentication required.');
-    }
-
-    if (
-      user.role === Role.RESEARCHER &&
-      user.approvalStatus !== ApprovalStatus.APPROVED
-    ) {
-      throw new ForbiddenException(
-        'Researcher account is waiting for admin approval.',
-      );
     }
 
     if (!requiredRoles.includes(user.role)) {

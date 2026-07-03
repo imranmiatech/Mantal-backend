@@ -39,21 +39,30 @@ export class PublicController {
   @ApiOperation({ summary: 'Get landing-page-ready published data' })
   getLandingPageData(
     @Query('division') division?: string,
-    @Query('district') districtSlug?: string,
+    @Query('district') district?: string,
+    @Query('upazila') upazila?: string,
   ) {
-    return this.publicService.getLandingPageData(division, districtSlug);
+    return this.publicService.getLandingPageData(division, district, upazila);
   }
 
   @Get('dashboard')
   @ApiOperation({ summary: 'Get published dashboard data' })
-  getDashboard(@Query('division') division?: string) {
-    return this.publicService.getDashboard(division);
+  getDashboard(
+    @Query('division') division?: string,
+    @Query('district') district?: string,
+    @Query('upazila') upazila?: string,
+  ) {
+    return this.publicService.getDashboard(division, district, upazila);
   }
 
   @Get('districts')
   @ApiOperation({ summary: 'List published districts' })
-  getDistricts(@Query('division') division?: string) {
-    return this.publicService.listDistricts(division);
+  getDistricts(
+    @Query('division') division?: string,
+    @Query('district') district?: string,
+    @Query('upazila') upazila?: string,
+  ) {
+    return this.publicService.listDistricts(division, district, upazila);
   }
 
   @Get('districts/:slug')

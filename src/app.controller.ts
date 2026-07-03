@@ -68,7 +68,9 @@ export class AppController {
   getSharedDashboard(
     @CurrentUser() _user: JwtUser,
     @Query('division') division?: string,
+    @Query('district') district?: string,
+    @Query('upazila') upazila?: string,
   ) {
-    return this.publicService.getDashboard(division);
+    return this.publicService.getDashboard(division, district, upazila);
   }
 }

@@ -33,7 +33,7 @@ export class AuthService {
         email: dto.email.toLowerCase(),
         passwordHash,
         role: Role.RESEARCHER,
-        approvalStatus: ApprovalStatus.PENDING,
+        approvalStatus: ApprovalStatus.APPROVED,
       },
       select: {
         id: true,
@@ -46,7 +46,7 @@ export class AuthService {
     });
 
     return {
-      message: 'Signup complete. Wait for admin approval before login.',
+      message: 'Signup complete. You can log in and publish data right away.',
       user,
     };
   }
@@ -64,15 +64,6 @@ export class AuthService {
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid email or password.');
-    }
-
-    if (
-      user.role === Role.RESEARCHER &&
-      user.approvalStatus !== ApprovalStatus.APPROVED
-    ) {
-      throw new UnauthorizedException(
-        'Researcher login requires admin approval first.',
-      );
     }
 
     const payload = {

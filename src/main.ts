@@ -18,7 +18,7 @@ async function bootstrap() {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('CAMH Risk Index API')
     .setDescription(
-      'Backend API for admin posting, public landing-page data, and researcher workflows.',
+      'Backend API for public landing-page data plus admin and researcher publishing workflows.',
     )
     .setVersion('1.0')
     .addBearerAuth()
