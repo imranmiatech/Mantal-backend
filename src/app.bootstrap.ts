@@ -17,7 +17,6 @@ export class AppBootstrapService implements OnModuleInit {
 
   async onModuleInit() {
     await this.ensureDefaultAdmin();
-    await this.ensureResearchersCanPublishImmediately();
     await this.ensureDistricts();
     await this.ensureDummyPublishedData();
   }
@@ -45,22 +44,6 @@ export class AppBootstrapService implements OnModuleInit {
     });
 
     this.logger.log(`Default admin ready for ${email}`);
-  }
-
-  private async ensureResearchersCanPublishImmediately() {
-    const result = await this.prisma.user.updateMany({
-      where: {
-        role: Role.RESEARCHER,
-        approvalStatus: ApprovalStatus.PENDING,
-      },
-      data: {
-        approvalStatus: ApprovalStatus.APPROVED,
-      },
-    });
-
-    if (result.count > 0) {
-      this.logger.log(`Auto-approved ${result.count} researcher account(s).`);
-    }
   }
 
   private async ensureDistricts() {

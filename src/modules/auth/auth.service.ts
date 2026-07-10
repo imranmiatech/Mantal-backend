@@ -33,7 +33,7 @@ export class AuthService {
         email: dto.email.toLowerCase(),
         passwordHash,
         role: Role.RESEARCHER,
-        approvalStatus: ApprovalStatus.APPROVED,
+        approvalStatus: ApprovalStatus.PENDING,
       },
       select: {
         id: true,
@@ -46,7 +46,8 @@ export class AuthService {
     });
 
     return {
-      message: 'Signup complete. You can log in and publish data right away.',
+      message:
+        'Signup complete. Your account is pending admin approval before you can log in.',
       user,
     };
   }
@@ -64,6 +65,15 @@ export class AuthService {
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid email or password.');
+    }
+
+    if (
+      user.role === Role.RESEARCHER &&
+      user.approvalStatus !== ApprovalStatus.APPROVED
+    ) {
+      throw new UnauthorizedException(
+        'Your researcher account is pending admin approval.',
+      );
     }
 
     const payload = {

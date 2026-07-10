@@ -13,11 +13,12 @@ NestJS + Prisma + PostgreSQL backend for the Climate-Ageing-Mental Health Risk I
 ## Core flow
 
 1. Researcher signs up with `POST /api/auth/signup`
-2. Admin approves researcher with `PATCH /api/admin/users/:id/approve`
-3. Researcher can submit data with `POST /api/researcher/submissions`
-4. Admin can publish pending submissions with `PATCH /api/admin/submissions/:id/publish`
-5. Admin can also post data directly with `POST /api/admin/submissions`
-6. Landing page reads live published data from `GET /api/public/dashboard`
+2. Researcher stays blocked from login until admin approval
+3. Admin approves researcher with `PATCH /api/admin/users/:id/approve`
+4. Researcher can submit data with `POST /api/researcher/submissions`
+5. Admin can publish pending submissions with `PATCH /api/admin/submissions/:id/publish`
+6. Admin can also post data directly with `POST /api/admin/submissions`
+7. Landing page reads live published data from `GET /api/public/dashboard`
 
 ## Main routes
 
