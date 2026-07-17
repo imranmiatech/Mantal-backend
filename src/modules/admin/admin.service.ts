@@ -201,14 +201,22 @@ export class AdminService {
     };
   }
 
-  async listAllResearchers(page: number = 1, limit: number = 10) {
+  async listAllResearchers(page: number = 1, limit: number = 10, search?: string) {
     const skip = (page - 1) * limit;
+
+    const whereCondition = {
+      role: Role.RESEARCHER,
+      ...(search && {
+        OR: [
+          { fullName: { contains: search, mode: 'insensitive' as const } },
+          { email: { contains: search, mode: 'insensitive' as const } },
+        ],
+      }),
+    };
 
     const [data, total] = await Promise.all([
       this.prisma.user.findMany({
-        where: {
-          role: Role.RESEARCHER,
-        },
+        where: whereCondition,
         select: {
           id: true,
           fullName: true,
@@ -224,9 +232,7 @@ export class AdminService {
         take: limit,
       }),
       this.prisma.user.count({
-        where: {
-          role: Role.RESEARCHER,
-        },
+        where: whereCondition,
       }),
     ]);
 
