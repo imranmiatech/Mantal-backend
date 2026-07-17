@@ -6,6 +6,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
+import { CreateBulkSubmissionsDto } from './dto/create-bulk-submissions.dto';
 import { ResearcherService } from './researcher.service';
 import type { JwtUser } from '../../common/types/jwt-user.type';
 
@@ -30,6 +31,15 @@ export class ResearcherController {
     @Body() dto: CreateSubmissionDto,
   ) {
     return this.researcherService.createSubmission(user.sub, dto);
+  }
+
+  @Post('submissions/bulk')
+  @ApiOperation({ summary: 'Create bulk researcher submissions' })
+  createBulkSubmissions(
+    @CurrentUser() user: JwtUser,
+    @Body() dto: CreateBulkSubmissionsDto,
+  ) {
+    return this.researcherService.createBulkSubmissions(user.sub, dto);
   }
 
   @Get('submissions/mine')

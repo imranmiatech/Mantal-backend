@@ -12,6 +12,7 @@ import {
 } from '../../common/data/bangladesh-locations';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
+import { CreateBulkSubmissionsDto } from './dto/create-bulk-submissions.dto';
 
 @Injectable()
 export class ResearcherService {
@@ -159,6 +160,18 @@ export class ResearcherService {
       createdAt: submission.createdAt,
       publishedAt: submission.publishedAt,
       message: 'Submission published successfully and is now visible publicly.',
+    };
+  }
+
+  async createBulkSubmissions(userId: string, dto: CreateBulkSubmissionsDto) {
+    const results: any[] = [];
+    for (const submission of dto.submissions) {
+      const result = await this.createSubmission(userId, submission);
+      results.push(result);
+    }
+    return {
+      message: `Successfully processed ${results.length} submissions.`,
+      submissions: results,
     };
   }
 

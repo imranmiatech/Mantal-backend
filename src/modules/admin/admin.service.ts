@@ -63,16 +63,25 @@ export class AdminService {
     });
   }
 
-  async listPublishedSubmissions() {
-    const submissions = await this.prisma.districtSubmission.findMany({
-      where: { status: SubmissionStatus.PUBLISHED },
-      include: {
-        district: true,
-      },
-      orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
-    });
+  async listPublishedSubmissions(page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
 
-    return submissions.map((submission) => {
+    const [submissions, total] = await Promise.all([
+      this.prisma.districtSubmission.findMany({
+        where: { status: SubmissionStatus.PUBLISHED },
+        include: {
+          district: true,
+        },
+        orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
+        skip,
+        take: limit,
+      }),
+      this.prisma.districtSubmission.count({
+        where: { status: SubmissionStatus.PUBLISHED },
+      }),
+    ]);
+
+    const data = submissions.map((submission) => {
       const values = {
         climateExposure: Number(submission.climateExposure),
         ageingIndex: Number(submission.ageingIndex),
@@ -98,6 +107,16 @@ export class AdminService {
         publishedAt: submission.publishedAt,
       };
     });
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async createSubmission(dto: CreateAdminSubmissionDto, adminId: string) {
@@ -182,21 +201,83 @@ export class AdminService {
     };
   }
 
-  async listPendingResearchers() {
-    return this.prisma.user.findMany({
-      where: {
-        role: Role.RESEARCHER,
-        approvalStatus: ApprovalStatus.PENDING,
+  async listAllResearchers(page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where: {
+          role: Role.RESEARCHER,
+        },
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          approvalStatus: true,
+          createdAt: true,
+          _count: {
+            select: { submissions: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.user.count({
+        where: {
+          role: Role.RESEARCHER,
+        },
+      }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
       },
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        approvalStatus: true,
-        createdAt: true,
+    };
+  }
+
+  async listPendingResearchers(page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where: {
+          role: Role.RESEARCHER,
+          approvalStatus: ApprovalStatus.PENDING,
+        },
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          approvalStatus: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'asc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.user.count({
+        where: {
+          role: Role.RESEARCHER,
+          approvalStatus: ApprovalStatus.PENDING,
+        },
+      }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
       },
-      orderBy: { createdAt: 'asc' },
-    });
+    };
   }
 
   async approveResearcher(userId: string, reviewerId: string, note?: string) {
@@ -232,22 +313,68 @@ export class AdminService {
     };
   }
 
-  async listPendingSubmissions() {
+  async listResearcherSubmissions(researcherId: string) {
     const submissions = await this.prisma.districtSubmission.findMany({
-      where: { status: SubmissionStatus.PENDING },
+      where: { researcherId },
       include: {
         district: true,
-        researcher: {
-          select: {
-            fullName: true,
-            email: true,
-          },
-        },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
     });
 
     return submissions.map((submission) => {
+      const values = {
+        climateExposure: Number(submission.climateExposure),
+        ageingIndex: Number(submission.ageingIndex),
+        psychologicalStress: Number(submission.psychologicalStress),
+        adaptabilityCapacity: Number(submission.adaptabilityCapacity),
+      };
+      const riskIndex = calculateRiskIndex(values);
+
+      return {
+        id: submission.id,
+        district: submission.district.name,
+        division: submission.district.division,
+        upazilaCode: submission.upazilaCode,
+        upazilaName: submission.upazilaName,
+        ce: values.climateExposure,
+        ag: values.ageingIndex,
+        ps: values.psychologicalStress,
+        ac: values.adaptabilityCapacity,
+        riskIndex,
+        riskLevel: getRiskLevel(riskIndex),
+        narrative: submission.narrative,
+        status: submission.status,
+        createdAt: submission.createdAt,
+      };
+    });
+  }
+
+  async listPendingSubmissions(page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+
+    const [submissions, total] = await Promise.all([
+      this.prisma.districtSubmission.findMany({
+        where: { status: SubmissionStatus.PENDING },
+        include: {
+          district: true,
+          researcher: {
+            select: {
+              fullName: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.districtSubmission.count({
+        where: { status: SubmissionStatus.PENDING },
+      }),
+    ]);
+
+    const data = submissions.map((submission) => {
       const values = {
         climateExposure: Number(submission.climateExposure),
         ageingIndex: Number(submission.ageingIndex),
@@ -270,6 +397,16 @@ export class AdminService {
         createdAt: submission.createdAt,
       };
     });
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async publishSubmission(submissionId: string, publisherId: string) {

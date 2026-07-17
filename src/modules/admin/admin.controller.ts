@@ -63,8 +63,11 @@ export class AdminController {
 
   @Get('submissions/published')
   @ApiOperation({ summary: 'List all published submissions' })
-  listPublishedSubmissions() {
-    return this.adminService.listPublishedSubmissions();
+  listPublishedSubmissions(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+  ) {
+    return this.adminService.listPublishedSubmissions(Number(page), Number(limit));
   }
 
   @Post('submissions')
@@ -76,10 +79,22 @@ export class AdminController {
     return this.adminService.createSubmission(dto, user.sub);
   }
 
+  @Get('users/researchers')
+  @ApiOperation({ summary: 'List all researchers' })
+  listAllResearchers(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+  ) {
+    return this.adminService.listAllResearchers(Number(page), Number(limit));
+  }
+
   @Get('users/pending')
   @ApiOperation({ summary: 'List pending researcher approvals' })
-  listPendingResearchers() {
-    return this.adminService.listPendingResearchers();
+  listPendingResearchers(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+  ) {
+    return this.adminService.listPendingResearchers(Number(page), Number(limit));
   }
 
   @Patch('users/:id/approve')
@@ -93,10 +108,19 @@ export class AdminController {
     return this.adminService.approveResearcher(id, user.sub, dto.note);
   }
 
+  @Get('users/:id/submissions')
+  @ApiOperation({ summary: 'List all submissions for a specific researcher' })
+  listResearcherSubmissions(@Param('id') id: string) {
+    return this.adminService.listResearcherSubmissions(id);
+  }
+
   @Get('submissions/pending')
   @ApiOperation({ summary: 'List pending researcher submissions' })
-  listPendingSubmissions() {
-    return this.adminService.listPendingSubmissions();
+  listPendingSubmissions(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+  ) {
+    return this.adminService.listPendingSubmissions(Number(page), Number(limit));
   }
 
   @Patch('submissions/:id/publish')
