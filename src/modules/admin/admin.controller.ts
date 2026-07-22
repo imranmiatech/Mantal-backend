@@ -28,6 +28,18 @@ import type { JwtUser } from '../../common/types/jwt-user.type';
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
+  @Get('profile')
+  @ApiOperation({ summary: 'Get current admin profile' })
+  getProfile(@CurrentUser() user: JwtUser) {
+    return this.adminService.getProfile(user.sub);
+  }
+
+  @Get('dashboard')
+  @ApiOperation({ summary: 'Get admin dashboard overview' })
+  getDashboard(@CurrentUser() user: JwtUser) {
+    return this.adminService.getDashboard(user.sub);
+  }
+
   @Get('divisions')
   @ApiOperation({ summary: 'List all Bangladesh divisions' })
   listDivisions() {
@@ -77,12 +89,13 @@ export class AdminController {
   }
 
   @Post('submissions')
+  @Roles(Role.ADMIN, Role.RESEARCHER)
   @ApiOperation({ summary: 'Create and optionally publish district data' })
   createSubmission(
     @Body() dto: CreateAdminSubmissionDto,
     @CurrentUser() user: JwtUser,
   ) {
-    return this.adminService.createSubmission(dto, user.sub);
+    return this.adminService.createSubmission(dto, user.sub, user.role);
   }
 
   @Get('users/researchers')

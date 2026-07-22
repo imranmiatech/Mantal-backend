@@ -22,6 +22,84 @@ import { CreateAdminSubmissionDto } from './dto/create-admin-submission.dto';
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getProfile(adminId: string) {
+    return this.prisma.user.findFirstOrThrow({
+      where: {
+        id: adminId,
+        role: Role.ADMIN,
+      },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: true,
+        approvalStatus: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async getDashboard(adminId: string) {
+    const [
+      profile,
+      totalResearchers,
+      pendingResearchers,
+      approvedResearchers,
+      rejectedResearchers,
+      totalSubmissions,
+      pendingSubmissions,
+      publishedSubmissions,
+      rejectedSubmissions,
+    ] = await Promise.all([
+      this.getProfile(adminId),
+      this.prisma.user.count({ where: { role: Role.RESEARCHER } }),
+      this.prisma.user.count({
+        where: {
+          role: Role.RESEARCHER,
+          approvalStatus: ApprovalStatus.PENDING,
+        },
+      }),
+      this.prisma.user.count({
+        where: {
+          role: Role.RESEARCHER,
+          approvalStatus: ApprovalStatus.APPROVED,
+        },
+      }),
+      this.prisma.user.count({
+        where: {
+          role: Role.RESEARCHER,
+          approvalStatus: ApprovalStatus.REJECTED,
+        },
+      }),
+      this.prisma.districtSubmission.count(),
+      this.prisma.districtSubmission.count({
+        where: { status: SubmissionStatus.PENDING },
+      }),
+      this.prisma.districtSubmission.count({
+        where: { status: SubmissionStatus.PUBLISHED },
+      }),
+      this.prisma.districtSubmission.count({
+        where: { status: SubmissionStatus.REJECTED },
+      }),
+    ]);
+
+    return {
+      profile,
+      researchers: {
+        total: totalResearchers,
+        pending: pendingResearchers,
+        approved: approvedResearchers,
+        rejected: rejectedResearchers,
+      },
+      submissions: {
+        total: totalSubmissions,
+        pending: pendingSubmissions,
+        published: publishedSubmissions,
+        rejected: rejectedSubmissions,
+      },
+    };
+  }
+
   listDivisions() {
     return bangladeshDivisions;
   }
@@ -98,7 +176,11 @@ export class AdminService {
     };
   }
 
-  async createSubmission(dto: CreateAdminSubmissionDto, adminId: string) {
+  async createSubmission(
+    dto: CreateAdminSubmissionDto,
+    submitterId: string,
+    submitterRole: Role,
+  ) {
     const district = await this.prisma.district.findUnique({
       where: { slug: dto.districtSlug },
     });
@@ -138,12 +220,13 @@ export class AdminService {
       psychologicalStress: clampRiskValue(dto.psychologicalStress),
       adaptabilityCapacity: clampRiskValue(dto.adaptabilityCapacity),
     };
-    const shouldPublish = dto.publishNow ?? true;
+    const shouldPublish =
+      submitterRole === Role.ADMIN ? (dto.publishNow ?? true) : false;
 
     const submission = await this.prisma.districtSubmission.create({
       data: {
         districtId: district.id,
-        researcherId: adminId,
+        researcherId: submitterId,
         upazilaCode,
         upazilaName,
         ...values,
@@ -152,7 +235,7 @@ export class AdminService {
           ? SubmissionStatus.PUBLISHED
           : SubmissionStatus.PENDING,
         publishedAt: shouldPublish ? new Date() : null,
-        publishedById: shouldPublish ? adminId : null,
+        publishedById: shouldPublish ? submitterId : null,
       },
     });
     const riskIndex = calculateRiskIndex(values);
@@ -176,7 +259,7 @@ export class AdminService {
       publishedAt: submission.publishedAt,
       message: shouldPublish
         ? 'Data posted and published for landing page.'
-        : 'Data saved as pending submission.',
+        : 'Data saved as pending submission for admin review.',
     };
   }
 
