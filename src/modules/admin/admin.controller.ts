@@ -24,31 +24,31 @@ import type { JwtUser } from '../../common/types/jwt-user.type';
 @ApiBearerAuth()
 @Controller('api/admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN)
+@Roles(Role.ADMIN, Role.RESEARCHER)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
   @Get('profile')
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Get current admin profile' })
   getProfile(@CurrentUser() user: JwtUser) {
     return this.adminService.getProfile(user.sub);
   }
 
   @Get('dashboard')
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Get admin dashboard overview' })
   getDashboard(@CurrentUser() user: JwtUser) {
     return this.adminService.getDashboard(user.sub);
   }
 
   @Get('divisions')
-  @Roles(Role.ADMIN, Role.RESEARCHER)
   @ApiOperation({ summary: 'List all Bangladesh divisions' })
   listDivisions() {
     return this.adminService.listDivisions();
   }
 
   @Get('locations/hierarchy')
-  @Roles(Role.ADMIN, Role.RESEARCHER)
   @ApiOperation({
     summary: 'Get Bangladesh division-district-upazila hierarchy',
   })
@@ -57,7 +57,6 @@ export class AdminController {
   }
 
   @Get('locations/districts')
-  @Roles(Role.ADMIN, Role.RESEARCHER)
   @ApiOperation({
     summary: 'List districts, optionally filtered by division code',
   })
@@ -68,14 +67,12 @@ export class AdminController {
   }
 
   @Get('locations/districts/:districtCode/upazilas')
-  @Roles(Role.ADMIN, Role.RESEARCHER)
   @ApiOperation({ summary: 'List all upazilas under a district code' })
   listUpazilas(@Param('districtCode') districtCode: string) {
     return this.adminService.listUpazilasByDistrict(Number(districtCode));
   }
 
   @Get('districts')
-  @Roles(Role.ADMIN, Role.RESEARCHER)
   @ApiOperation({ summary: 'List districts for admin input panels' })
   listDistricts() {
     return this.adminService.listDistricts();
@@ -94,7 +91,6 @@ export class AdminController {
   }
 
   @Post('submissions')
-  @Roles(Role.ADMIN, Role.RESEARCHER)
   @ApiOperation({ summary: 'Create and optionally publish district data' })
   createSubmission(
     @Body() dto: CreateAdminSubmissionDto,
@@ -104,6 +100,7 @@ export class AdminController {
   }
 
   @Get('users/researchers')
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'List all researchers' })
   listAllResearchers(
     @Query('page') page: string = '1',
@@ -118,6 +115,7 @@ export class AdminController {
   }
 
   @Get('users/pending')
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'List pending researcher approvals' })
   listPendingResearchers(
     @Query('page') page: string = '1',
@@ -130,12 +128,14 @@ export class AdminController {
   }
 
   @Get('users/:id/submissions')
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'List all submissions for a specific researcher' })
   listResearcherSubmissions(@Param('id') id: string) {
     return this.adminService.listResearcherSubmissions(id);
   }
 
   @Patch('users/:id/approve')
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Approve a researcher account' })
   approveResearcher(
     @Param('id') id: string,
@@ -146,6 +146,7 @@ export class AdminController {
   }
 
   @Patch('users/:id/reject')
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Reject a researcher account' })
   rejectResearcher(
     @Param('id') id: string,
@@ -156,6 +157,7 @@ export class AdminController {
   }
 
   @Get('submissions/pending')
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'List pending researcher submissions' })
   listPendingSubmissions(
     @Query('page') page: string = '1',
@@ -168,18 +170,21 @@ export class AdminController {
   }
 
   @Patch('submissions/:id/publish')
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Publish a pending submission to the landing page' })
   publishSubmission(@Param('id') id: string, @CurrentUser() user: JwtUser) {
     return this.adminService.publishSubmission(id, user.sub);
   }
 
   @Patch('submissions/:id/reject')
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Reject a pending submission' })
   rejectSubmission(@Param('id') id: string) {
     return this.adminService.rejectSubmission(id);
   }
 
   @Delete('researchers/:id')
+  @Roles(Role.ADMIN)
   @ApiOperation({
     summary: 'Delete a researcher account and their submissions',
   })
@@ -188,12 +193,14 @@ export class AdminController {
   }
 
   @Delete('posts/:id')
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Delete a published or pending post/submission' })
   deletePost(@Param('id') id: string) {
     return this.adminService.deleteSubmission(id);
   }
 
   @Delete('submissions/:id')
+  @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Delete a submission' })
   deleteSubmission(@Param('id') id: string) {
     return this.adminService.deleteSubmission(id);
