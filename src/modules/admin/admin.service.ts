@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ApprovalStatus, Role, SubmissionStatus } from '@prisma/client';
+import { Role, SubmissionStatus } from '@prisma/client';
 import {
   bangladeshDivisions,
   getDistrictByCode,
@@ -201,159 +201,67 @@ export class AdminService {
     };
   }
 
-  async listAllResearchers(page: number = 1, limit: number = 10, search?: string) {
-    const skip = (page - 1) * limit;
+  async deleteSubmission(submissionId: string) {
+    const submission = await this.prisma.districtSubmission.findUnique({
+      where: { id: submissionId },
+      include: { district: true },
+    });
 
-    const whereCondition = {
-      role: Role.RESEARCHER,
-      ...(search && {
-        OR: [
-          { fullName: { contains: search, mode: 'insensitive' as const } },
-          { email: { contains: search, mode: 'insensitive' as const } },
-        ],
-      }),
-    };
-
-    const [data, total] = await Promise.all([
-      this.prisma.user.findMany({
-        where: whereCondition,
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-          approvalStatus: true,
-          createdAt: true,
-          _count: {
-            select: { submissions: true },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.user.count({
-        where: whereCondition,
-      }),
-    ]);
-
-    return {
-      data,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-  }
-
-  async listPendingResearchers(page: number = 1, limit: number = 10) {
-    const skip = (page - 1) * limit;
-
-    const [data, total] = await Promise.all([
-      this.prisma.user.findMany({
-        where: {
-          role: Role.RESEARCHER,
-          approvalStatus: ApprovalStatus.PENDING,
-        },
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-          approvalStatus: true,
-          createdAt: true,
-        },
-        orderBy: { createdAt: 'asc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.user.count({
-        where: {
-          role: Role.RESEARCHER,
-          approvalStatus: ApprovalStatus.PENDING,
-        },
-      }),
-    ]);
-
-    return {
-      data,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-  }
-
-  async approveResearcher(userId: string, reviewerId: string, note?: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-
-    if (!user || user.role !== Role.RESEARCHER) {
-      throw new NotFoundException('Researcher not found.');
+    if (!submission) {
+      throw new NotFoundException('Submission not found.');
     }
 
-    const updatedUser = await this.prisma.user.update({
-      where: { id: userId },
-      data: { approvalStatus: ApprovalStatus.APPROVED },
+    await this.prisma.districtSubmission.delete({
+      where: { id: submissionId },
+    });
+
+    return {
+      message: `${submission.district.name} submission deleted successfully.`,
+      id: submission.id,
+    };
+  }
+
+  async deleteResearcher(researcherId: string) {
+    const researcher = await this.prisma.user.findFirst({
+      where: {
+        id: researcherId,
+        role: Role.RESEARCHER,
+      },
       select: {
         id: true,
         fullName: true,
         email: true,
-        approvalStatus: true,
       },
     });
 
-    await this.prisma.userApprovalAudit.create({
-      data: {
-        userId,
-        reviewerId,
-        status: ApprovalStatus.APPROVED,
-        note,
-      },
+    if (!researcher) {
+      throw new NotFoundException('Researcher not found.');
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const deletedSubmissions = await tx.districtSubmission.deleteMany({
+        where: { researcherId },
+      });
+
+      await tx.userApprovalAudit.deleteMany({
+        where: {
+          OR: [{ userId: researcherId }, { reviewerId: researcherId }],
+        },
+      });
+
+      await tx.user.delete({
+        where: { id: researcherId },
+      });
+
+      return deletedSubmissions;
     });
 
     return {
-      message: 'Researcher approved successfully.',
-      user: updatedUser,
+      message: `${researcher.fullName} researcher deleted successfully.`,
+      id: researcher.id,
+      email: researcher.email,
+      deletedSubmissions: result.count,
     };
-  }
-
-  async listResearcherSubmissions(researcherId: string) {
-    const submissions = await this.prisma.districtSubmission.findMany({
-      where: { researcherId },
-      include: {
-        district: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return submissions.map((submission) => {
-      const values = {
-        climateExposure: Number(submission.climateExposure),
-        ageingIndex: Number(submission.ageingIndex),
-        psychologicalStress: Number(submission.psychologicalStress),
-        adaptabilityCapacity: Number(submission.adaptabilityCapacity),
-      };
-      const riskIndex = calculateRiskIndex(values);
-
-      return {
-        id: submission.id,
-        district: submission.district.name,
-        division: submission.district.division,
-        upazilaCode: submission.upazilaCode,
-        upazilaName: submission.upazilaName,
-        ce: values.climateExposure,
-        ag: values.ageingIndex,
-        ps: values.psychologicalStress,
-        ac: values.adaptabilityCapacity,
-        riskIndex,
-        riskLevel: getRiskLevel(riskIndex),
-        narrative: submission.narrative,
-        status: submission.status,
-        createdAt: submission.createdAt,
-      };
-    });
   }
 
   async listPendingSubmissions(page: number = 1, limit: number = 10) {

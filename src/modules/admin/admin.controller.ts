@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -14,7 +15,6 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { ReviewUserDto } from './dto/review-user.dto';
 import { CreateAdminSubmissionDto } from './dto/create-admin-submission.dto';
 import { AdminService } from './admin.service';
 import type { JwtUser } from '../../common/types/jwt-user.type';
@@ -23,7 +23,7 @@ import type { JwtUser } from '../../common/types/jwt-user.type';
 @ApiBearerAuth()
 @Controller('api/admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN, Role.RESEARCHER)
+@Roles(Role.ADMIN)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
@@ -79,42 +79,6 @@ export class AdminController {
     return this.adminService.createSubmission(dto, user.sub);
   }
 
-  @Get('users/researchers')
-  @ApiOperation({ summary: 'List all researchers' })
-  listAllResearchers(
-    @Query('page') page: string = '1',
-    @Query('limit') limit: string = '10',
-    @Query('search') search?: string,
-  ) {
-    return this.adminService.listAllResearchers(Number(page), Number(limit), search);
-  }
-
-  @Get('users/pending')
-  @ApiOperation({ summary: 'List pending researcher approvals' })
-  listPendingResearchers(
-    @Query('page') page: string = '1',
-    @Query('limit') limit: string = '10',
-  ) {
-    return this.adminService.listPendingResearchers(Number(page), Number(limit));
-  }
-
-  @Patch('users/:id/approve')
-  @ApiOperation({ summary: 'Approve a researcher account' })
-  @Roles(Role.ADMIN)
-  approveResearcher(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtUser,
-    @Body() dto: ReviewUserDto,
-  ) {
-    return this.adminService.approveResearcher(id, user.sub, dto.note);
-  }
-
-  @Get('users/:id/submissions')
-  @ApiOperation({ summary: 'List all submissions for a specific researcher' })
-  listResearcherSubmissions(@Param('id') id: string) {
-    return this.adminService.listResearcherSubmissions(id);
-  }
-
   @Get('submissions/pending')
   @ApiOperation({ summary: 'List pending researcher submissions' })
   listPendingSubmissions(
@@ -134,5 +98,23 @@ export class AdminController {
   @ApiOperation({ summary: 'Reject a pending submission' })
   rejectSubmission(@Param('id') id: string) {
     return this.adminService.rejectSubmission(id);
+  }
+
+  @Delete('researchers/:id')
+  @ApiOperation({ summary: 'Delete a researcher account and their submissions' })
+  deleteResearcher(@Param('id') id: string) {
+    return this.adminService.deleteResearcher(id);
+  }
+
+  @Delete('posts/:id')
+  @ApiOperation({ summary: 'Delete a published or pending post/submission' })
+  deletePost(@Param('id') id: string) {
+    return this.adminService.deleteSubmission(id);
+  }
+
+  @Delete('submissions/:id')
+  @ApiOperation({ summary: 'Delete a submission' })
+  deleteSubmission(@Param('id') id: string) {
+    return this.adminService.deleteSubmission(id);
   }
 }

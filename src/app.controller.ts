@@ -34,11 +34,6 @@ export class AppController {
           districts: 'GET /api/public/districts',
           districtBySlug: 'GET /api/public/districts/:slug',
         },
-        researcher: {
-          dashboard: 'GET /api/researcher/dashboard',
-          createSubmission: 'POST /api/researcher/submissions',
-          mySubmissions: 'GET /api/researcher/submissions/mine',
-        },
         admin: {
           divisions: 'GET /api/admin/divisions',
           locationHierarchy: 'GET /api/admin/locations/hierarchy',
@@ -49,11 +44,12 @@ export class AppController {
           districts: 'GET /api/admin/districts',
           publishedSubmissions: 'GET /api/admin/submissions/published',
           createPublishedSubmission: 'POST /api/admin/submissions',
-          pendingResearchers: 'GET /api/admin/users/pending',
-          approveResearcher: 'PATCH /api/admin/users/:id/approve',
           pendingSubmissions: 'GET /api/admin/submissions/pending',
           publishSubmission: 'PATCH /api/admin/submissions/:id/publish',
           rejectSubmission: 'PATCH /api/admin/submissions/:id/reject',
+          deleteResearcher: 'DELETE /api/admin/researchers/:id',
+          deletePost: 'DELETE /api/admin/posts/:id',
+          deleteSubmission: 'DELETE /api/admin/submissions/:id',
         },
       },
     };
