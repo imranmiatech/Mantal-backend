@@ -1,10 +1,12 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { AppBootstrapService } from './app.bootstrap';
 import { PrismaService } from './modules/prisma/prisma.service';
 
 async function bootstrap() {
+  const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
   app.useGlobalPipes(
     new ValidationPipe({
@@ -32,7 +34,14 @@ async function bootstrap() {
 
   const prismaService = app.get(PrismaService);
   prismaService.enableShutdownHooks(app);
+  await prismaService.connectWithRetry();
 
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
+  logger.log(`Server is running on port ${process.env.PORT ?? 3000}`);
+
+  const appBootstrap = app.get(AppBootstrapService);
+  void appBootstrap.seed().catch((error: unknown) => {
+    logger.error('Startup seed failed', error);
+  });
 }
 void bootstrap();

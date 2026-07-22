@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ApprovalStatus, Role, SubmissionStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import {
@@ -10,12 +10,12 @@ import {
 import { PrismaService } from './modules/prisma/prisma.service';
 
 @Injectable()
-export class AppBootstrapService implements OnModuleInit {
+export class AppBootstrapService {
   private readonly logger = new Logger(AppBootstrapService.name);
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async onModuleInit() {
+  async seed() {
     await this.ensureDefaultAdmin();
     await this.ensureDistricts();
     await this.ensureDummyPublishedData();
