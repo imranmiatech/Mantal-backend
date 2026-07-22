@@ -41,12 +41,14 @@ export class AdminController {
   }
 
   @Get('divisions')
+  @Roles(Role.ADMIN, Role.RESEARCHER)
   @ApiOperation({ summary: 'List all Bangladesh divisions' })
   listDivisions() {
     return this.adminService.listDivisions();
   }
 
   @Get('locations/hierarchy')
+  @Roles(Role.ADMIN, Role.RESEARCHER)
   @ApiOperation({
     summary: 'Get Bangladesh division-district-upazila hierarchy',
   })
@@ -55,6 +57,7 @@ export class AdminController {
   }
 
   @Get('locations/districts')
+  @Roles(Role.ADMIN, Role.RESEARCHER)
   @ApiOperation({
     summary: 'List districts, optionally filtered by division code',
   })
@@ -65,12 +68,14 @@ export class AdminController {
   }
 
   @Get('locations/districts/:districtCode/upazilas')
+  @Roles(Role.ADMIN, Role.RESEARCHER)
   @ApiOperation({ summary: 'List all upazilas under a district code' })
   listUpazilas(@Param('districtCode') districtCode: string) {
     return this.adminService.listUpazilasByDistrict(Number(districtCode));
   }
 
   @Get('districts')
+  @Roles(Role.ADMIN, Role.RESEARCHER)
   @ApiOperation({ summary: 'List districts for admin input panels' })
   listDistricts() {
     return this.adminService.listDistricts();
