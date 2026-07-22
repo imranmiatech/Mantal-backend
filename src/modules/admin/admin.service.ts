@@ -221,7 +221,7 @@ export class AdminService {
       adaptabilityCapacity: clampRiskValue(dto.adaptabilityCapacity),
     };
     const shouldPublish =
-      submitterRole === Role.ADMIN ? (dto.publishNow ?? true) : false;
+      submitterRole === Role.RESEARCHER ? true : (dto.publishNow ?? true);
 
     const submission = await this.prisma.districtSubmission.create({
       data: {
@@ -259,7 +259,7 @@ export class AdminService {
       publishedAt: submission.publishedAt,
       message: shouldPublish
         ? 'Data posted and published for landing page.'
-        : 'Data saved as pending submission for admin review.',
+        : 'Data saved as pending submission.',
     };
   }
 

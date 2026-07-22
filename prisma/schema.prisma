@@ -72,7 +72,7 @@ model DistrictSubmission {
   psychologicalStress Decimal          @db.Decimal(4, 2)
   adaptabilityCapacity Decimal         @db.Decimal(4, 2)
   narrative           String
-  status              SubmissionStatus @default(PENDING)
+  status              SubmissionStatus @default(PUBLISHED)
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
   publishedAt         DateTime?
