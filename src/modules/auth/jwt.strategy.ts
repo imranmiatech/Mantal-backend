@@ -1,5 +1,4 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { ApprovalStatus, Role } from '@prisma/client';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -36,8 +35,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     return {
       sub: user.id,
       email: user.email,
-      role: user.role as Role,
-      approvalStatus: user.approvalStatus as ApprovalStatus,
+      role: user.role,
+      approvalStatus: user.approvalStatus,
     };
   }
 }

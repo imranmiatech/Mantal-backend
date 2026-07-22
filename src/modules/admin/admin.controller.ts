@@ -16,6 +16,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CreateAdminSubmissionDto } from './dto/create-admin-submission.dto';
+import { ReviewUserDto } from './dto/review-user.dto';
 import { AdminService } from './admin.service';
 import type { JwtUser } from '../../common/types/jwt-user.type';
 
@@ -42,7 +43,9 @@ export class AdminController {
   }
 
   @Get('locations/districts')
-  @ApiOperation({ summary: 'List districts, optionally filtered by division code' })
+  @ApiOperation({
+    summary: 'List districts, optionally filtered by division code',
+  })
   listHierarchyDistricts(@Query('divisionCode') divisionCode?: string) {
     return this.adminService.listDistrictsByDivision(
       divisionCode ? Number(divisionCode) : undefined,
@@ -67,7 +70,10 @@ export class AdminController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
   ) {
-    return this.adminService.listPublishedSubmissions(Number(page), Number(limit));
+    return this.adminService.listPublishedSubmissions(
+      Number(page),
+      Number(limit),
+    );
   }
 
   @Post('submissions')
@@ -79,13 +85,68 @@ export class AdminController {
     return this.adminService.createSubmission(dto, user.sub);
   }
 
+  @Get('users/researchers')
+  @ApiOperation({ summary: 'List all researchers' })
+  listAllResearchers(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+    @Query('search') search?: string,
+  ) {
+    return this.adminService.listAllResearchers(
+      Number(page),
+      Number(limit),
+      search,
+    );
+  }
+
+  @Get('users/pending')
+  @ApiOperation({ summary: 'List pending researcher approvals' })
+  listPendingResearchers(
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+  ) {
+    return this.adminService.listPendingResearchers(
+      Number(page),
+      Number(limit),
+    );
+  }
+
+  @Get('users/:id/submissions')
+  @ApiOperation({ summary: 'List all submissions for a specific researcher' })
+  listResearcherSubmissions(@Param('id') id: string) {
+    return this.adminService.listResearcherSubmissions(id);
+  }
+
+  @Patch('users/:id/approve')
+  @ApiOperation({ summary: 'Approve a researcher account' })
+  approveResearcher(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtUser,
+    @Body() dto: ReviewUserDto,
+  ) {
+    return this.adminService.approveResearcher(id, user.sub, dto.note);
+  }
+
+  @Patch('users/:id/reject')
+  @ApiOperation({ summary: 'Reject a researcher account' })
+  rejectResearcher(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtUser,
+    @Body() dto: ReviewUserDto,
+  ) {
+    return this.adminService.rejectResearcher(id, user.sub, dto.note);
+  }
+
   @Get('submissions/pending')
   @ApiOperation({ summary: 'List pending researcher submissions' })
   listPendingSubmissions(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
   ) {
-    return this.adminService.listPendingSubmissions(Number(page), Number(limit));
+    return this.adminService.listPendingSubmissions(
+      Number(page),
+      Number(limit),
+    );
   }
 
   @Patch('submissions/:id/publish')
@@ -101,7 +162,9 @@ export class AdminController {
   }
 
   @Delete('researchers/:id')
-  @ApiOperation({ summary: 'Delete a researcher account and their submissions' })
+  @ApiOperation({
+    summary: 'Delete a researcher account and their submissions',
+  })
   deleteResearcher(@Param('id') id: string) {
     return this.adminService.deleteResearcher(id);
   }

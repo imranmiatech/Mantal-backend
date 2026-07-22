@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Role, SubmissionStatus } from '@prisma/client';
+import { ApprovalStatus, Prisma, Role, SubmissionStatus } from '@prisma/client';
 import {
   bangladeshDivisions,
   getDistrictByCode,
@@ -64,7 +64,11 @@ export class AdminService {
   }
 
   async listPublishedSubmissions(page: number = 1, limit: number = 10) {
-    const skip = (page - 1) * limit;
+    const {
+      page: safePage,
+      limit: safeLimit,
+      skip,
+    } = this.getPagination(page, limit);
 
     const [submissions, total] = await Promise.all([
       this.prisma.districtSubmission.findMany({
@@ -74,47 +78,22 @@ export class AdminService {
         },
         orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
         skip,
-        take: limit,
+        take: safeLimit,
       }),
       this.prisma.districtSubmission.count({
         where: { status: SubmissionStatus.PUBLISHED },
       }),
     ]);
 
-    const data = submissions.map((submission) => {
-      const values = {
-        climateExposure: Number(submission.climateExposure),
-        ageingIndex: Number(submission.ageingIndex),
-        psychologicalStress: Number(submission.psychologicalStress),
-        adaptabilityCapacity: Number(submission.adaptabilityCapacity),
-      };
-      const riskIndex = calculateRiskIndex(values);
-
-      return {
-        id: submission.id,
-        district: submission.district.name,
-        slug: submission.district.slug,
-        division: submission.district.division,
-        upazilaCode: submission.upazilaCode,
-        upazilaName: submission.upazilaName,
-        ce: values.climateExposure,
-        ag: values.ageingIndex,
-        ps: values.psychologicalStress,
-        ac: values.adaptabilityCapacity,
-        riskIndex,
-        riskLevel: getRiskLevel(riskIndex),
-        narrative: submission.narrative,
-        publishedAt: submission.publishedAt,
-      };
-    });
-
     return {
-      data,
+      data: submissions.map((submission) =>
+        this.mapSubmissionForAdmin(submission),
+      ),
       meta: {
         total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+        page: safePage,
+        limit: safeLimit,
+        totalPages: Math.ceil(total / safeLimit),
       },
     };
   }
@@ -264,8 +243,157 @@ export class AdminService {
     };
   }
 
+  async listAllResearchers(
+    page: number = 1,
+    limit: number = 10,
+    search?: string,
+  ) {
+    const {
+      page: safePage,
+      limit: safeLimit,
+      skip,
+    } = this.getPagination(page, limit);
+    const where: Prisma.UserWhereInput = {
+      role: Role.RESEARCHER,
+      ...(search?.trim()
+        ? {
+            OR: [
+              {
+                fullName: {
+                  contains: search.trim(),
+                  mode: 'insensitive' as const,
+                },
+              },
+              {
+                email: {
+                  contains: search.trim(),
+                  mode: 'insensitive' as const,
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const [data, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          approvalStatus: true,
+          createdAt: true,
+          _count: {
+            select: { submissions: true },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: safeLimit,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page: safePage,
+        limit: safeLimit,
+        totalPages: Math.ceil(total / safeLimit),
+      },
+    };
+  }
+
+  async listPendingResearchers(page: number = 1, limit: number = 10) {
+    const {
+      page: safePage,
+      limit: safeLimit,
+      skip,
+    } = this.getPagination(page, limit);
+    const where: Prisma.UserWhereInput = {
+      role: Role.RESEARCHER,
+      approvalStatus: ApprovalStatus.PENDING,
+    };
+
+    const [data, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          approvalStatus: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'asc' },
+        skip,
+        take: safeLimit,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page: safePage,
+        limit: safeLimit,
+        totalPages: Math.ceil(total / safeLimit),
+      },
+    };
+  }
+
+  async approveResearcher(userId: string, reviewerId: string, note?: string) {
+    return this.reviewResearcher(
+      userId,
+      reviewerId,
+      ApprovalStatus.APPROVED,
+      note,
+      'Researcher approved successfully.',
+    );
+  }
+
+  async rejectResearcher(userId: string, reviewerId: string, note?: string) {
+    return this.reviewResearcher(
+      userId,
+      reviewerId,
+      ApprovalStatus.REJECTED,
+      note,
+      'Researcher rejected successfully.',
+    );
+  }
+
+  async listResearcherSubmissions(researcherId: string) {
+    const researcher = await this.prisma.user.findFirst({
+      where: { id: researcherId, role: Role.RESEARCHER },
+      select: { id: true },
+    });
+
+    if (!researcher) {
+      throw new NotFoundException('Researcher not found.');
+    }
+
+    const submissions = await this.prisma.districtSubmission.findMany({
+      where: { researcherId },
+      include: {
+        district: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return submissions.map((submission) =>
+      this.mapSubmissionForAdmin(submission),
+    );
+  }
+
   async listPendingSubmissions(page: number = 1, limit: number = 10) {
-    const skip = (page - 1) * limit;
+    const {
+      page: safePage,
+      limit: safeLimit,
+      skip,
+    } = this.getPagination(page, limit);
 
     const [submissions, total] = await Promise.all([
       this.prisma.districtSubmission.findMany({
@@ -281,44 +409,23 @@ export class AdminService {
         },
         orderBy: { createdAt: 'asc' },
         skip,
-        take: limit,
+        take: safeLimit,
       }),
       this.prisma.districtSubmission.count({
         where: { status: SubmissionStatus.PENDING },
       }),
     ]);
 
-    const data = submissions.map((submission) => {
-      const values = {
-        climateExposure: Number(submission.climateExposure),
-        ageingIndex: Number(submission.ageingIndex),
-        psychologicalStress: Number(submission.psychologicalStress),
-        adaptabilityCapacity: Number(submission.adaptabilityCapacity),
-      };
-      const riskIndex = calculateRiskIndex(values);
-
-      return {
-        id: submission.id,
-        district: submission.district.name,
-        division: submission.district.division,
-        upazilaCode: submission.upazilaCode,
-        upazilaName: submission.upazilaName,
-        researcher: submission.researcher,
-        values,
-        riskIndex,
-        riskLevel: getRiskLevel(riskIndex),
-        narrative: submission.narrative,
-        createdAt: submission.createdAt,
-      };
-    });
-
     return {
-      data,
+      data: submissions.map((submission) => ({
+        ...this.mapSubmissionForAdmin(submission),
+        researcher: submission.researcher,
+      })),
       meta: {
         total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+        page: safePage,
+        limit: safeLimit,
+        totalPages: Math.ceil(total / safeLimit),
       },
     };
   }
@@ -369,5 +476,115 @@ export class AdminService {
         status: true,
       },
     });
+  }
+
+  private getPagination(page: number = 1, limit: number = 10) {
+    const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+    const safeLimit =
+      Number.isFinite(limit) && limit > 0
+        ? Math.min(Math.floor(limit), 100)
+        : 10;
+
+    return {
+      page: safePage,
+      limit: safeLimit,
+      skip: (safePage - 1) * safeLimit,
+    };
+  }
+
+  private async reviewResearcher(
+    userId: string,
+    reviewerId: string,
+    status: ApprovalStatus,
+    note: string | undefined,
+    message: string,
+  ) {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id: userId,
+        role: Role.RESEARCHER,
+      },
+      select: { id: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Researcher not found.');
+    }
+
+    const updatedUser = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({
+        where: { id: userId },
+        data: { approvalStatus: status },
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          approvalStatus: true,
+        },
+      });
+
+      await tx.userApprovalAudit.create({
+        data: {
+          userId,
+          reviewerId,
+          status,
+          note,
+        },
+      });
+
+      return updated;
+    });
+
+    return {
+      message,
+      user: updatedUser,
+    };
+  }
+
+  private mapSubmissionForAdmin(submission: {
+    id: string;
+    district: {
+      name: string;
+      slug?: string;
+      division: string;
+    };
+    upazilaCode: number | null;
+    upazilaName: string | null;
+    climateExposure: Prisma.Decimal;
+    ageingIndex: Prisma.Decimal;
+    psychologicalStress: Prisma.Decimal;
+    adaptabilityCapacity: Prisma.Decimal;
+    narrative: string;
+    status: SubmissionStatus;
+    createdAt: Date;
+    publishedAt?: Date | null;
+  }) {
+    const values = {
+      climateExposure: Number(submission.climateExposure),
+      ageingIndex: Number(submission.ageingIndex),
+      psychologicalStress: Number(submission.psychologicalStress),
+      adaptabilityCapacity: Number(submission.adaptabilityCapacity),
+    };
+    const riskIndex = calculateRiskIndex(values);
+
+    return {
+      id: submission.id,
+      district: submission.district.name,
+      slug: submission.district.slug,
+      division: submission.district.division,
+      upazilaCode: submission.upazilaCode,
+      upazilaName: submission.upazilaName,
+      ce: values.climateExposure,
+      ag: values.ageingIndex,
+      ps: values.psychologicalStress,
+      ac: values.adaptabilityCapacity,
+      values,
+      riskIndex,
+      riskLevel: getRiskLevel(riskIndex),
+      narrative: submission.narrative,
+      status: submission.status,
+      createdAt: submission.createdAt,
+      publishedAt: submission.publishedAt ?? null,
+    };
   }
 }

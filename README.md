@@ -7,6 +7,7 @@ NestJS + Prisma + PostgreSQL backend for the Climate-Ageing-Mental Health Risk I
 - Researcher signup and login approval flow
 - Admin-only approval for researcher accounts
 - Admin panel API to post district risk data directly
+- Admin-only researcher and post deletion APIs
 - Public landing-page API that returns only published district data
 - District-wise filtering for landing page consumption
 
@@ -40,27 +41,30 @@ NestJS + Prisma + PostgreSQL backend for the Climate-Ageing-Mental Health Risk I
 
 - `GET /api/researcher/dashboard`
 - `POST /api/researcher/submissions`
+- `POST /api/researcher/submissions/bulk`
 - `GET /api/researcher/submissions/mine`
 
 ### Admin
 
-- `POST /api/admin/submissions`
+- `GET /api/admin/users/researchers`
+- `GET /api/admin/users/researchers?page=1&limit=5&search=name`
 - `GET /api/admin/users/pending`
+- `GET /api/admin/users/:id/submissions`
 - `PATCH /api/admin/users/:id/approve`
+- `PATCH /api/admin/users/:id/reject`
+- `DELETE /api/admin/researchers/:id`
+- `POST /api/admin/submissions`
+- `GET /api/admin/submissions/published`
 - `GET /api/admin/submissions/pending`
 - `PATCH /api/admin/submissions/:id/publish`
 - `PATCH /api/admin/submissions/:id/reject`
+- `DELETE /api/admin/posts/:id`
+- `DELETE /api/admin/submissions/:id`
 
-Admins and approved researchers can use the same authenticated dashboard route:
+Admins and approved researchers can use the same authenticated public dashboard route:
 
 ```bash
 GET /api/dashboard
-```
-
-Approved researchers can use all admin routes except:
-
-```bash
-PATCH /api/admin/users/:id/approve
 ```
 
 ## Prisma models

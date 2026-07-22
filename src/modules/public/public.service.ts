@@ -54,7 +54,11 @@ export class PublicService {
     district?: string,
     upazila?: string,
   ) {
-    const records = await this.fetchPublishedRecords(division, district, upazila);
+    const records = await this.fetchPublishedRecords(
+      division,
+      district,
+      upazila,
+    );
     const districts = records.map((record) => this.mapPublishedRecord(record));
     const selectedDistrict =
       districts.find((item) => item.slug === district) ?? districts[0];
@@ -102,9 +106,15 @@ export class PublicService {
   }
 
   async getDashboard(division?: string, district?: string, upazila?: string) {
-    const records = await this.fetchPublishedRecords(division, district, upazila);
+    const records = await this.fetchPublishedRecords(
+      division,
+      district,
+      upazila,
+    );
     const districts = records.map((record) => this.mapPublishedRecord(record));
-    const divisions = [...new Set(districts.map((district) => district.division))];
+    const divisions = [
+      ...new Set(districts.map((district) => district.division)),
+    ];
 
     return {
       generatedAt: new Date().toISOString(),
@@ -125,7 +135,11 @@ export class PublicService {
   }
 
   async listDistricts(division?: string, district?: string, upazila?: string) {
-    const records = await this.fetchPublishedRecords(division, district, upazila);
+    const records = await this.fetchPublishedRecords(
+      division,
+      district,
+      upazila,
+    );
     return records.map((record) => this.mapPublishedRecord(record));
   }
 
@@ -256,30 +270,28 @@ export class PublicService {
     };
   }
 
-  private mapPublishedRecord(
-    record: {
-      district: {
-        id: string;
-        name: string;
-        slug: string;
-        division: string;
-        summaryNote: string;
-      };
-      climateExposure: Prisma.Decimal;
-      ageingIndex: Prisma.Decimal;
-      psychologicalStress: Prisma.Decimal;
-      adaptabilityCapacity: Prisma.Decimal;
-      narrative: string;
-      publishedAt: Date | null;
-      createdAt: Date;
-      upazilaCode?: number | null;
-      upazilaName?: string | null;
-      researcher?: {
-        fullName: string;
-        email: string;
-      };
-    },
-  ) {
+  private mapPublishedRecord(record: {
+    district: {
+      id: string;
+      name: string;
+      slug: string;
+      division: string;
+      summaryNote: string;
+    };
+    climateExposure: Prisma.Decimal;
+    ageingIndex: Prisma.Decimal;
+    psychologicalStress: Prisma.Decimal;
+    adaptabilityCapacity: Prisma.Decimal;
+    narrative: string;
+    publishedAt: Date | null;
+    createdAt: Date;
+    upazilaCode?: number | null;
+    upazilaName?: string | null;
+    researcher?: {
+      fullName: string;
+      email: string;
+    };
+  }) {
     const values = {
       climateExposure: Number(record.climateExposure),
       ageingIndex: Number(record.ageingIndex),

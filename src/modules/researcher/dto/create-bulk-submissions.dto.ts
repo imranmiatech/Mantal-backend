@@ -4,7 +4,10 @@ import { CreateSubmissionDto } from './create-submission.dto';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateBulkSubmissionsDto {
-  @ApiProperty({ type: [CreateSubmissionDto], description: 'Array of district submissions' })
+  @ApiProperty({
+    type: [CreateSubmissionDto],
+    description: 'Array of district submissions',
+  })
   @IsArray()
   @ArrayNotEmpty()
   @ValidateNested({ each: true })

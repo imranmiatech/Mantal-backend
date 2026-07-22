@@ -25,9 +25,12 @@ export const bangladeshDivisions = divisions_en.map((division) => ({
 }));
 
 export const getDivisionByCode = (divisionCode: number) =>
-  bangladeshDivisions.find((division) => division.code === divisionCode) ?? null;
+  bangladeshDivisions.find((division) => division.code === divisionCode) ??
+  null;
 
-export const getDivisionByIdentifier = (divisionIdentifier: string | number) => {
+export const getDivisionByIdentifier = (
+  divisionIdentifier: string | number,
+) => {
   const normalizedIdentifier = String(divisionIdentifier).trim();
   const numericCode = Number(normalizedIdentifier);
 
@@ -55,7 +58,8 @@ export const getDivisionByIdentifier = (divisionIdentifier: string | number) => 
 };
 
 export const getDistrictsByDivisionCode = (divisionCode: number) => {
-  const districts = (districts_en as Record<number, LocationNode[]>)[divisionCode] ?? [];
+  const districts =
+    (districts_en as Record<number, LocationNode[]>)[divisionCode] ?? [];
 
   return districts.map((district) => ({
     code: district.value,
@@ -93,7 +97,9 @@ export const getDistrictBySlug = (districtSlug: string) => {
   return null;
 };
 
-export const getDistrictByIdentifier = (districtIdentifier: string | number) => {
+export const getDistrictByIdentifier = (
+  districtIdentifier: string | number,
+) => {
   const normalizedIdentifier = String(districtIdentifier).trim();
   const numericCode = Number(normalizedIdentifier);
 
@@ -113,7 +119,8 @@ export const getDistrictByIdentifier = (districtIdentifier: string | number) => 
 
   for (const division of bangladeshDivisions) {
     const districtByName = getDistrictsByDivisionCode(division.code).find(
-      (item) => normalizeName(item.name) === normalizeName(normalizedIdentifier),
+      (item) =>
+        normalizeName(item.name) === normalizeName(normalizedIdentifier),
     );
 
     if (districtByName) {
@@ -125,7 +132,8 @@ export const getDistrictByIdentifier = (districtIdentifier: string | number) => 
 };
 
 export const getUpazilasByDistrictCode = (districtCode: number) => {
-  const upazilas = (upazilas_en as Record<number, LocationNode[]>)[districtCode] ?? [];
+  const upazilas =
+    (upazilas_en as Record<number, LocationNode[]>)[districtCode] ?? [];
 
   return upazilas.map((upazila) => ({
     code: upazila.value,

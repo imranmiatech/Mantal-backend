@@ -6,6 +6,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { PrismaModule } from './modules/prisma/prisma.module';
 import { PublicModule } from './modules/public/public.module';
+import { ResearcherModule } from './modules/researcher/researcher.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { PublicModule } from './modules/public/public.module';
     PrismaModule,
     AuthModule,
     PublicModule,
+    ResearcherModule,
     AdminModule,
   ],
   controllers: [AppController],

@@ -136,9 +136,9 @@ export class ResearcherService {
         upazilaName,
         ...data,
         narrative: dto.narrative,
-        status: SubmissionStatus.PUBLISHED,
-        publishedAt: new Date(),
-        publishedById: userId,
+        status: SubmissionStatus.PENDING,
+        publishedAt: null,
+        publishedById: null,
       },
       include: {
         district: true,
@@ -159,7 +159,7 @@ export class ResearcherService {
       riskLevel: getRiskLevel(riskIndex),
       createdAt: submission.createdAt,
       publishedAt: submission.publishedAt,
-      message: 'Submission published successfully and is now visible publicly.',
+      message: 'Submission saved and is pending admin review.',
     };
   }
 

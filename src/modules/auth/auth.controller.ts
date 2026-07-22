@@ -13,7 +13,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('signup')
-  @ApiOperation({ summary: 'Register an admin account' })
+  @ApiOperation({ summary: 'Register a researcher account' })
   signup(@Body() dto: SignupDto) {
     return this.authService.signup(dto);
   }

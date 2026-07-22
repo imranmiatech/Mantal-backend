@@ -22,7 +22,9 @@ export class PublicController {
   }
 
   @Get('locations/districts')
-  @ApiOperation({ summary: 'List districts, optionally filtered by division code' })
+  @ApiOperation({
+    summary: 'List districts, optionally filtered by division code',
+  })
   getDistrictDirectory(@Query('divisionCode') divisionCode?: string) {
     return this.publicService.getDistrictDirectory(
       divisionCode ? Number(divisionCode) : undefined,

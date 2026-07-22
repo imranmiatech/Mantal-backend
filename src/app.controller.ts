@@ -42,6 +42,11 @@ export class AppController {
           upazilasByDistrict:
             'GET /api/admin/locations/districts/:districtCode/upazilas',
           districts: 'GET /api/admin/districts',
+          researchers: 'GET /api/admin/users/researchers',
+          pendingResearchers: 'GET /api/admin/users/pending',
+          researcherSubmissions: 'GET /api/admin/users/:id/submissions',
+          approveResearcher: 'PATCH /api/admin/users/:id/approve',
+          rejectResearcher: 'PATCH /api/admin/users/:id/reject',
           publishedSubmissions: 'GET /api/admin/submissions/published',
           createPublishedSubmission: 'POST /api/admin/submissions',
           pendingSubmissions: 'GET /api/admin/submissions/pending',
@@ -51,6 +56,12 @@ export class AppController {
           deletePost: 'DELETE /api/admin/posts/:id',
           deleteSubmission: 'DELETE /api/admin/submissions/:id',
         },
+        researcher: {
+          dashboard: 'GET /api/researcher/dashboard',
+          createSubmission: 'POST /api/researcher/submissions',
+          bulkSubmissions: 'POST /api/researcher/submissions/bulk',
+          mySubmissions: 'GET /api/researcher/submissions/mine',
+        },
       },
     };
   }
@@ -59,7 +70,8 @@ export class AppController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Get the shared authenticated dashboard for admins and researchers',
+    summary:
+      'Get the shared authenticated dashboard for admins and researchers',
   })
   getSharedDashboard(
     @CurrentUser() _user: JwtUser,
